@@ -1,8 +1,25 @@
-import bcrypt from "bcrypt"
-import User from "../models/user.model.js"
+import bcrypt from "bcrypt";
+import User from "../models/user.model.js";
 import jwt from "jsonwebtoken";
 
+function generateToken(user) {
+  return jwt.sign(
+    {
+      id: user._id,
+      role: user.role,
+    },
+    process.env.JWT_SECRET,
+    {
+      expiresIn: process.env.JWT_EXPIRES_IN || "7d",
+    }
+  );
+}
+
 export async function createUser(data) {
+  if (!data.password) {
+    throw new Error("Password is required");
+  }
+
   const hashedPassword = await bcrypt.hash(data.password, 10);
 
   const user = await User.create({
@@ -10,19 +27,8 @@ export async function createUser(data) {
     password: hashedPassword,
   });
 
-  const token = jwt.sign(
-    {
-      id: user._id,
-      role: user.role,
-    },
-    process.env.JWT_SECRET,
-    {
-      expiresIn: process.env.JWT_EXPIRES_IN,
-    }
-  );
-
+  const token = generateToken(user);
   const userObject = user.toObject();
-
   delete userObject.password;
 
   return {
@@ -32,14 +38,14 @@ export async function createUser(data) {
 }
 
 export async function getUserById(id) {
-    return User.findById(id)
+    return User.findById(id);
 }
 
 export async function getUsers({ page = 1, limit = 10 }) {
-    page = Number(page)
-    limit = Number(limit)
+    page = Number(page);
+    limit = Number(limit);
 
-    const skip = (page - 1) * limit
+    const skip = (page - 1) * limit;
 
     const [users, total] = await Promise.all([
         User.find()
@@ -75,17 +81,7 @@ export async function loginUser(email, password) {
         throw new Error("Invalid email or password");
     }
 
-    const token = jwt.sign(
-        {
-            id: user._id,
-            role: user.role,
-        },
-        process.env.JWT_SECRET,
-        {
-            expiresIn: process.env.JWT_EXPIRES_IN,
-        }
-    );
-
+    const token = generateToken(user);
     const userObject = user.toObject();
     delete userObject.password;
 
@@ -94,4 +90,5 @@ export async function loginUser(email, password) {
         token,
     };
 }
+
 

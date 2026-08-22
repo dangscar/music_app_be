@@ -41,6 +41,29 @@ export async function getUser(req, res, next) {
     }
 }
 
+export async function getMe(req, res, next) {
+    try {
+        const user = await getUserById(req.user.id);
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found",
+            });
+        }
+
+        res.json({
+            success: true,
+            data: user,
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message,
+        });
+    }
+}
+
 export async function getAllUsers(req, res, next) {
   try {
     const { page, limit } = req.query;
@@ -76,3 +99,5 @@ export async function login(req, res, next) {
     });
   }
 }
+
+
