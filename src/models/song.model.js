@@ -31,6 +31,10 @@ const songSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    videoUrl: {
+      type: String,
+      default: null,
+    },
     coverImage: {
       type: String,
       default: "",

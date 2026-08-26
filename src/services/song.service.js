@@ -1,5 +1,6 @@
 import Song from "../models/song.model.js";
 
+
 export async function createSong(data) {
     return Song.create(data);
 }
@@ -42,6 +43,18 @@ export async function updateSong(id, data) {
         new: true,
         runValidators: true,
     });
+}
+
+export async function getRandomSongs(limit = 3) {
+    const size = Number(limit) || 3;
+    const songs = await Song.aggregate([
+        { $sample: { size } },
+    ]);
+
+    return Song.populate(songs, [
+        { path: "artistIds", select: "name avatar" },
+        { path: "albumId", select: "title coverImage" },
+    ]);
 }
 
 export async function deleteSong(id) {

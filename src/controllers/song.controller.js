@@ -27,6 +27,23 @@ export async function getAllSongs(req, res) {
     }
 }
 
+export async function getRandomSongs(req, res) {
+    try {
+        const { limit = 3 } = req.query;
+        const songs = await songService.getRandomSongs(Number(limit) || 3);
+
+        res.json({
+            success: true,
+            data: songs,
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message,
+        });
+    }
+}
+
 export async function getSongById(req, res) {
     try {
         const song = await songService.getSongById(req.params.id);
