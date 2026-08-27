@@ -35,7 +35,7 @@ export async function getSongs(page = 1, limit = 10, filter = {}) {
     Song.find(query)
       .populate("artistIds", "name avatar")
       .populate("albumId", "title coverImage")
-      .populate("topicIds", "name slug coverImage type")
+      .populate("topicIds", "name slug coverImage type color")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limitNum),
@@ -57,7 +57,7 @@ export async function getSongById(id) {
   return Song.findById(id)
     .populate("artistIds", "name avatar")
     .populate("albumId", "title coverImage")
-    .populate("topicIds", "name slug coverImage type");
+    .populate("topicIds", "name slug coverImage type color");
 }
 
 export async function getSongsByTopic(topicId, page = 1, limit = 10) {
@@ -71,7 +71,7 @@ export async function updateSong(id, data) {
   })
     .populate("artistIds", "name avatar")
     .populate("albumId", "title coverImage")
-    .populate("topicIds", "name slug coverImage type");
+    .populate("topicIds", "name slug coverImage type color");
 }
 
 export async function getRandomSongs(limit = 3) {
@@ -81,7 +81,7 @@ export async function getRandomSongs(limit = 3) {
   return Song.populate(songs, [
     { path: "artistIds", select: "name avatar" },
     { path: "albumId", select: "title coverImage" },
-    { path: "topicIds", select: "name slug coverImage type" },
+    { path: "topicIds", select: "name slug coverImage type color" },
   ]);
 }
 

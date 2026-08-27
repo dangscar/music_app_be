@@ -9,7 +9,8 @@
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "migrate:video-url": "node src/scripts/migrate-video-url.js",
-    "migrate:topic-ids": "node src/scripts/migrate-topic-ids.js"
+    "migrate:topic-ids": "node src/scripts/migrate-topic-ids.js",
+    "migrate:topic-color": "node src/scripts/migrate-topic-color.js"
   },
   "keywords": [],
   "author": "",

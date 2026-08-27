@@ -21,6 +21,11 @@ const topicSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    color: {
+      type: String,
+      default: "#1DB954",
+      trim: true,
+    },
     type: {
       type: String,
       default: "mood",

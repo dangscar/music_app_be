@@ -25,7 +25,7 @@ export async function getHomeRecommendations({
       .limit(Number(songLimit))
       .populate("artistIds", "name avatar bio")
       .populate("albumId", "title coverImage releaseDate")
-      .populate("topicIds", "name slug coverImage type")
+      .populate("topicIds", "name slug coverImage type color")
       .lean(),
 
     // Album đề xuất (mới nhất hoặc theo ngày phát hành)

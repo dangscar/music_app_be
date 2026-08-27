@@ -16,6 +16,9 @@ export function slugify(text) {
 
 export async function createTopic(data) {
   const topicData = { ...data };
+  if (topicData.colorCode && !topicData.color) {
+    topicData.color = topicData.colorCode;
+  }
   if (topicData.name && !topicData.slug) {
     topicData.slug = slugify(topicData.name);
   }
@@ -76,6 +79,9 @@ export async function getTopicBySlug(slug) {
 
 export async function updateTopic(id, data) {
   const updateData = { ...data };
+  if (updateData.colorCode && !updateData.color) {
+    updateData.color = updateData.colorCode;
+  }
   if (updateData.name && !updateData.slug) {
     updateData.slug = slugify(updateData.name);
   }
