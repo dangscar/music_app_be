@@ -19,6 +19,12 @@ const songSchema = new mongoose.Schema(
       ref: "Album",
       default: null,
     },
+    topicIds: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Topic",
+      },
+    ],
     genre: {
       type: String,
       default: "",

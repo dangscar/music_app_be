@@ -6,6 +6,7 @@ import artistRouter from "./routes/artist.routes.js";
 import albumRoute from "./routes/album.route.js";
 import songRoute from "./routes/song.route.js";
 import homeRoute from "./routes/home.route.js";
+import topicRoute from "./routes/topic.route.js";
 
 const app = express();
 app.use(cors());
@@ -26,5 +27,6 @@ app.use("/api/users", userRouter);
 app.use("/api/artists", artistRouter);
 app.use("/api/albums", albumRoute);
 app.use("/api/songs", songRoute);
+app.use("/api/topics", topicRoute);
 
 export default app;

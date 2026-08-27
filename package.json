@@ -8,7 +8,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "migrate:video-url": "node src/scripts/migrate-video-url.js"
+    "migrate:video-url": "node src/scripts/migrate-video-url.js",
+    "migrate:topic-ids": "node src/scripts/migrate-topic-ids.js"
   },
   "keywords": [],
   "author": "",
