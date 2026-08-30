@@ -3,16 +3,27 @@ import Playlist from "../models/playlist.model.js";
 
 export async function createPlaylist(req, res) {
   try {
-    const userId = req.user?.id || req.body.userId;
+    const userId = req.user?.id;
     if (!userId) {
-      return res.status(400).json({
+      return res.status(401).json({
         success: false,
         message: "User authentication is required",
       });
     }
 
+    const { name, description, coverImage, isPublic } = req.body;
+    if (!name) {
+      return res.status(400).json({
+        success: false,
+        message: "Playlist name is required",
+      });
+    }
+
     const playlist = await playlistService.createPlaylist({
-      ...req.body,
+      name,
+      description,
+      coverImage,
+      isPublic,
       userId,
     });
 
@@ -38,12 +49,13 @@ export async function getMyPlaylists(req, res) {
       });
     }
 
-    const { page = 1, limit = 20, search } = req.query;
+    const { page = 1, limit = 20, isPublic, search } = req.query;
 
     const result = await playlistService.getPlaylists({
       page,
       limit,
       userId,
+      isPublic,
       search,
     });
 
@@ -61,13 +73,21 @@ export async function getMyPlaylists(req, res) {
 
 export async function getAllPlaylists(req, res) {
   try {
-    const { page = 1, limit = 10, userId, isPublic, search } = req.query;
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "User authentication is required",
+      });
+    }
+
+    const { page = 1, limit = 20, isPublic, search } = req.query;
 
     const result = await playlistService.getPlaylists({
       page,
       limit,
       userId,
-      isPublic: isPublic !== undefined ? isPublic : true,
+      isPublic,
       search,
     });
 
@@ -85,6 +105,14 @@ export async function getAllPlaylists(req, res) {
 
 export async function getPlaylistById(req, res) {
   try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "User authentication is required",
+      });
+    }
+
     const playlist = await playlistService.getPlaylistById(req.params.id);
 
     if (!playlist) {
@@ -94,16 +122,13 @@ export async function getPlaylistById(req, res) {
       });
     }
 
-    // Nếu playlist là private, kiểm tra quyền xem của chủ sở hữu
-    if (!playlist.isPublic) {
-      const currentUserId = req.user?.id;
-      const ownerId = playlist.userId?._id?.toString() || playlist.userId?.toString();
-      if (!currentUserId || (currentUserId !== ownerId && req.user?.role !== "admin")) {
-        return res.status(403).json({
-          success: false,
-          message: "This playlist is private",
-        });
-      }
+    // Kiểm tra quyền: Chỉ chủ sở hữu (hoặc admin) mới có thể xem playlist
+    const ownerId = playlist.userId?._id?.toString() || playlist.userId?.toString();
+    if (ownerId !== userId && req.user?.role !== "admin") {
+      return res.status(403).json({
+        success: false,
+        message: "You do not have permission to access this playlist",
+      });
     }
 
     res.json({
@@ -120,6 +145,14 @@ export async function getPlaylistById(req, res) {
 
 export async function updatePlaylist(req, res) {
   try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "User authentication is required",
+      });
+    }
+
     const existingPlaylist = await Playlist.findById(req.params.id);
     if (!existingPlaylist) {
       return res.status(404).json({
@@ -129,10 +162,8 @@ export async function updatePlaylist(req, res) {
     }
 
     // Kiểm tra quyền sở hữu
-    const currentUserId = req.user?.id;
     if (
-      currentUserId &&
-      existingPlaylist.userId.toString() !== currentUserId &&
+      existingPlaylist.userId.toString() !== userId &&
       req.user?.role !== "admin"
     ) {
       return res.status(403).json({
@@ -141,9 +172,16 @@ export async function updatePlaylist(req, res) {
       });
     }
 
+    const { name, description, coverImage, isPublic } = req.body;
+    const updateData = {};
+    if (name !== undefined) updateData.name = name;
+    if (description !== undefined) updateData.description = description;
+    if (coverImage !== undefined) updateData.coverImage = coverImage;
+    if (isPublic !== undefined) updateData.isPublic = isPublic;
+
     const playlist = await playlistService.updatePlaylist(
       req.params.id,
-      req.body
+      updateData
     );
 
     res.json({
@@ -160,6 +198,14 @@ export async function updatePlaylist(req, res) {
 
 export async function deletePlaylist(req, res) {
   try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "User authentication is required",
+      });
+    }
+
     const existingPlaylist = await Playlist.findById(req.params.id);
     if (!existingPlaylist) {
       return res.status(404).json({
@@ -169,10 +215,8 @@ export async function deletePlaylist(req, res) {
     }
 
     // Kiểm tra quyền sở hữu
-    const currentUserId = req.user?.id;
     if (
-      currentUserId &&
-      existingPlaylist.userId.toString() !== currentUserId &&
+      existingPlaylist.userId.toString() !== userId &&
       req.user?.role !== "admin"
     ) {
       return res.status(403).json({
@@ -194,3 +238,4 @@ export async function deletePlaylist(req, res) {
     });
   }
 }
+
