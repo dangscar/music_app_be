@@ -11,6 +11,7 @@ import playlistRoute from "./routes/playlist.route.js";
 import playlistSongRoute from "./routes/playlistSong.route.js";
 import favoriteRoute from "./routes/favorite.route.js";
 import listeningHistoryRoute from "./routes/listeningHistory.route.js";
+import searchRoute from "./routes/search.route.js";
 
 const app = express();
 app.use(cors());
@@ -37,5 +38,6 @@ app.use("/api/playlist-songs", playlistSongRoute);
 app.use("/api/favorites", favoriteRoute);
 app.use("/api/listening-history", listeningHistoryRoute);
 app.use("/api/listening-histories", listeningHistoryRoute);
+app.use("/api/search", searchRoute);
 
 export default app;
