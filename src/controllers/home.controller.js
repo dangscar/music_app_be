@@ -10,12 +10,16 @@ export async function getHomeRecommendationsController(req, res) {
       songLimit = limit || 10,
       albumLimit = limit || 10,
       artistLimit = limit || 10,
+      topicLimit = limit || 10,
     } = req.query;
+    const userId = req.user?.id || req.query.userId;
 
     const data = await homeService.getHomeRecommendations({
       songLimit,
       albumLimit,
       artistLimit,
+      topicLimit,
+      userId,
     });
 
     res.status(200).json({

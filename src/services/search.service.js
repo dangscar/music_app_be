@@ -1,6 +1,7 @@
 import Song from "../models/song.model.js";
 import Album from "../models/album.model.js";
 import { Artist } from "../models/artist.model.js";
+import { attachIsFavoriteToSongs } from "./favorite.service.js";
 
 /**
  * Thoát các ký tự đặc biệt trong biểu thức chính quy để tránh lỗi RegExp và ReDoS
@@ -59,6 +60,7 @@ export async function search({
   type = "all",
   page = 1,
   limit = 20,
+  userId = null,
 } = {}) {
   const trimmedQuery = (query || "").trim();
   const pageNum = Math.max(1, Number(page) || 1);
@@ -170,8 +172,12 @@ export async function search({
     totalArtists,
   ] = await Promise.all(promises);
 
+  const songsWithFavorite = shouldSearchSongs
+    ? await attachIsFavoriteToSongs(songs, userId)
+    : [];
+
   // Chuẩn hóa bài hát có trường type="song"
-  const formattedSongs = songs.map((song) => ({
+  const formattedSongs = songsWithFavorite.map((song) => ({
     type: "song",
     ...song,
     name: song.title,

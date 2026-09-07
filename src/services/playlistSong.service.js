@@ -1,6 +1,10 @@
 import PlaylistSong from "../models/playlistSong.model.js";
 import Playlist from "../models/playlist.model.js";
 import Song from "../models/song.model.js";
+import {
+  attachIsFavoriteToSongs,
+  attachIsFavoriteToSong,
+} from "./favorite.service.js";
 
 export async function addSongToPlaylist({ playlistId, songId, order }) {
   // Kiểm tra playlist và song có tồn tại không
@@ -49,6 +53,7 @@ export async function getPlaylistSongs({
   songId,
   page = 1,
   limit = 20,
+  userId = null,
 } = {}) {
   const query = {};
 
@@ -77,12 +82,31 @@ export async function getPlaylistSongs({
       })
       .sort({ order: 1, addedAt: -1 })
       .skip(skip)
-      .limit(limitNum),
+      .limit(limitNum)
+      .lean(),
     PlaylistSong.countDocuments(query),
   ]);
 
+  const songsToAttach = playlistSongs
+    .map((ps) => ps.songId)
+    .filter((s) => s && typeof s === "object");
+
+  const attachedSongs = await attachIsFavoriteToSongs(songsToAttach, userId);
+  const songMap = new Map(attachedSongs.map((s) => [s._id.toString(), s]));
+
+  const formattedPlaylistSongs = playlistSongs.map((ps) => {
+    if (ps.songId && typeof ps.songId === "object") {
+      const updated = songMap.get(ps.songId._id.toString());
+      if (updated) {
+        ps.songId = updated;
+        ps.isFavorite = updated.isFavorite;
+      }
+    }
+    return ps;
+  });
+
   return {
-    playlistSongs,
+    playlistSongs: formattedPlaylistSongs,
     pagination: {
       page: pageNum,
       limit: limitNum,
@@ -92,8 +116,8 @@ export async function getPlaylistSongs({
   };
 }
 
-export async function getPlaylistSongById(id) {
-  return PlaylistSong.findById(id)
+export async function getPlaylistSongById(id, userId = null) {
+  const playlistSong = await PlaylistSong.findById(id)
     .populate("playlistId", "name coverImage userId")
     .populate({
       path: "songId",
@@ -102,7 +126,17 @@ export async function getPlaylistSongById(id) {
         { path: "albumId", select: "title coverImage" },
         { path: "topicIds", select: "name slug coverImage type color" },
       ],
-    });
+    })
+    .lean();
+
+  if (!playlistSong) return null;
+
+  if (playlistSong.songId && typeof playlistSong.songId === "object") {
+    playlistSong.songId = await attachIsFavoriteToSong(playlistSong.songId, userId);
+    playlistSong.isFavorite = playlistSong.songId.isFavorite;
+  }
+
+  return playlistSong;
 }
 
 export async function updatePlaylistSong(id, data) {

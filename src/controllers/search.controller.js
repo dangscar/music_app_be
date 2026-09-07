@@ -16,12 +16,14 @@ export async function searchController(req, res) {
     } = req.query;
 
     const searchTerm = q || searchQuery || searchParam || keyword || "";
+    const userId = req.user?.id || req.query.userId;
 
     const result = await searchService.search({
       query: searchTerm,
       type,
       page,
       limit,
+      userId,
     });
 
     res.status(200).json({

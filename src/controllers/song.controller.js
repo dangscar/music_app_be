@@ -12,14 +12,20 @@ export async function createSong(req, res) {
 export async function getAllSongs(req, res) {
   try {
     const { page = 1, limit = 10, topicId, artistId, albumId, genre, search } = req.query;
+    const userId = req.user?.id || req.query.userId;
 
-    const result = await songService.getSongs(page, limit, {
-      topicId,
-      artistId,
-      albumId,
-      genre,
-      search,
-    });
+    const result = await songService.getSongs(
+      page,
+      limit,
+      {
+        topicId,
+        artistId,
+        albumId,
+        genre,
+        search,
+      },
+      userId
+    );
 
     res.json({
       success: true,
@@ -37,8 +43,9 @@ export async function getSongsByTopic(req, res) {
   try {
     const { page = 1, limit = 10 } = req.query;
     const { topicId } = req.params;
+    const userId = req.user?.id || req.query.userId;
 
-    const result = await songService.getSongsByTopic(topicId, page, limit);
+    const result = await songService.getSongsByTopic(topicId, page, limit, userId);
 
     res.json({
       success: true,
@@ -55,7 +62,8 @@ export async function getSongsByTopic(req, res) {
 export async function getRandomSongs(req, res) {
   try {
     const { limit = 3 } = req.query;
-    const songs = await songService.getRandomSongs(Number(limit) || 3);
+    const userId = req.user?.id || req.query.userId;
+    const songs = await songService.getRandomSongs(Number(limit) || 3, userId);
 
     res.json({
       success: true,
@@ -71,7 +79,8 @@ export async function getRandomSongs(req, res) {
 
 export async function getSongById(req, res) {
   try {
-    const song = await songService.getSongById(req.params.id);
+    const userId = req.user?.id || req.query.userId;
+    const song = await songService.getSongById(req.params.id, userId);
 
     if (!song) {
       return res.status(404).json({
@@ -88,7 +97,8 @@ export async function getSongById(req, res) {
 
 export async function updateSong(req, res) {
   try {
-    const song = await songService.updateSong(req.params.id, req.body);
+    const userId = req.user?.id || req.query.userId;
+    const song = await songService.updateSong(req.params.id, req.body, userId);
 
     if (!song) {
       return res.status(404).json({

@@ -167,3 +167,83 @@ export async function deleteFavorite(id) {
 export async function removeFavoriteByUserAndSong(userId, songId) {
   return Favorite.findOneAndDelete({ userId, songId });
 }
+
+/**
+ * Gắn trạng thái isFavorite vào danh sách bài hát dựa trên userId
+ * @param {Array<Object>} songs - Danh sách bài hát (có thể là mongoose doc hoặc plain object)
+ * @param {string|mongoose.Types.ObjectId} [userId] - ID của người dùng nếu có
+ * @returns {Promise<Array<Object>>}
+ */
+export async function attachIsFavoriteToSongs(songs, userId) {
+  if (!songs || !Array.isArray(songs) || songs.length === 0) {
+    return [];
+  }
+
+  const plainSongs = songs.map((song) =>
+    typeof song?.toObject === "function" ? song.toObject() : { ...song }
+  );
+
+  if (!userId) {
+    return plainSongs.map((song) => ({
+      ...song,
+      isFavorite: false,
+    }));
+  }
+
+  const songIds = plainSongs
+    .map((song) => song._id)
+    .filter(Boolean);
+
+  if (songIds.length === 0) {
+    return plainSongs.map((song) => ({
+      ...song,
+      isFavorite: false,
+    }));
+  }
+
+  const favorites = await Favorite.find({
+    userId,
+    songId: { $in: songIds },
+  })
+    .select("songId")
+    .lean();
+
+  const favoriteSongIdsSet = new Set(
+    favorites.map((fav) => fav.songId.toString())
+  );
+
+  return plainSongs.map((song) => ({
+    ...song,
+    isFavorite: favoriteSongIdsSet.has(song._id?.toString()),
+  }));
+}
+
+/**
+ * Gắn trạng thái isFavorite vào một bài hát dựa trên userId
+ * @param {Object} song - Bài hát (mongoose doc hoặc plain object)
+ * @param {string|mongoose.Types.ObjectId} [userId] - ID của người dùng nếu có
+ * @returns {Promise<Object|null>}
+ */
+export async function attachIsFavoriteToSong(song, userId) {
+  if (!song) return null;
+
+  const plainSong =
+    typeof song?.toObject === "function" ? song.toObject() : { ...song };
+
+  if (!userId || !plainSong._id) {
+    return {
+      ...plainSong,
+      isFavorite: false,
+    };
+  }
+
+  const exists = await Favorite.exists({
+    userId,
+    songId: plainSong._id,
+  });
+
+  return {
+    ...plainSong,
+    isFavorite: Boolean(exists),
+  };
+}

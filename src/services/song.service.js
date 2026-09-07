@@ -1,10 +1,15 @@
 import Song from "../models/song.model.js";
+import {
+  attachIsFavoriteToSongs,
+  attachIsFavoriteToSong,
+} from "./favorite.service.js";
 
 export async function createSong(data) {
-  return Song.create(data);
+  const song = await Song.create(data);
+  return attachIsFavoriteToSong(song, null);
 }
 
-export async function getSongs(page = 1, limit = 10, filter = {}) {
+export async function getSongs(page = 1, limit = 10, filter = {}, userId = null) {
   const pageNum = Math.max(1, Number(page) || 1);
   const limitNum = Math.max(1, Number(limit) || 10);
   const skip = (pageNum - 1) * limitNum;
@@ -38,12 +43,15 @@ export async function getSongs(page = 1, limit = 10, filter = {}) {
       .populate("topicIds", "name slug coverImage type color")
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(limitNum),
+      .limit(limitNum)
+      .lean(),
     Song.countDocuments(query),
   ]);
 
+  const songsWithFavorite = await attachIsFavoriteToSongs(songs, userId);
+
   return {
-    songs,
+    songs: songsWithFavorite,
     pagination: {
       page: pageNum,
       limit: limitNum,
@@ -53,36 +61,48 @@ export async function getSongs(page = 1, limit = 10, filter = {}) {
   };
 }
 
-export async function getSongById(id) {
-  return Song.findById(id)
+export async function getSongById(id, userId = null) {
+  const song = await Song.findById(id)
     .populate("artistIds", "name avatar")
     .populate("albumId", "title coverImage")
-    .populate("topicIds", "name slug coverImage type color");
+    .populate("topicIds", "name slug coverImage type color")
+    .lean();
+
+  if (!song) return null;
+
+  return attachIsFavoriteToSong(song, userId);
 }
 
-export async function getSongsByTopic(topicId, page = 1, limit = 10) {
-  return getSongs(page, limit, { topicId });
+export async function getSongsByTopic(topicId, page = 1, limit = 10, userId = null) {
+  return getSongs(page, limit, { topicId }, userId);
 }
 
-export async function updateSong(id, data) {
-  return Song.findByIdAndUpdate(id, data, {
+export async function updateSong(id, data, userId = null) {
+  const song = await Song.findByIdAndUpdate(id, data, {
     new: true,
     runValidators: true,
   })
     .populate("artistIds", "name avatar")
     .populate("albumId", "title coverImage")
-    .populate("topicIds", "name slug coverImage type color");
+    .populate("topicIds", "name slug coverImage type color")
+    .lean();
+
+  if (!song) return null;
+
+  return attachIsFavoriteToSong(song, userId);
 }
 
-export async function getRandomSongs(limit = 3) {
+export async function getRandomSongs(limit = 3, userId = null) {
   const size = Number(limit) || 3;
   const songs = await Song.aggregate([{ $sample: { size } }]);
 
-  return Song.populate(songs, [
+  const populatedSongs = await Song.populate(songs, [
     { path: "artistIds", select: "name avatar" },
     { path: "albumId", select: "title coverImage" },
     { path: "topicIds", select: "name slug coverImage type color" },
   ]);
+
+  return attachIsFavoriteToSongs(populatedSongs, userId);
 }
 
 export async function deleteSong(id) {

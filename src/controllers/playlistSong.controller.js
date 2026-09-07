@@ -63,6 +63,7 @@ export async function getPlaylistSongs(req, res) {
   try {
     const { playlistId: paramPlaylistId } = req.params;
     const { playlistId: queryPlaylistId, songId, page = 1, limit = 20 } = req.query;
+    const userId = req.user?.id || req.query.userId;
 
     const playlistId = paramPlaylistId || queryPlaylistId;
 
@@ -71,6 +72,7 @@ export async function getPlaylistSongs(req, res) {
       songId,
       page,
       limit,
+      userId,
     });
 
     res.json({
@@ -87,8 +89,10 @@ export async function getPlaylistSongs(req, res) {
 
 export async function getPlaylistSongById(req, res) {
   try {
+    const userId = req.user?.id || req.query.userId;
     const playlistSong = await playlistSongService.getPlaylistSongById(
-      req.params.id
+      req.params.id,
+      userId
     );
 
     if (!playlistSong) {

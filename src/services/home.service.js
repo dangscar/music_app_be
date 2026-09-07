@@ -2,6 +2,7 @@ import Song from "../models/song.model.js";
 import Album from "../models/album.model.js";
 import { Artist } from "../models/artist.model.js";
 import Topic from "../models/topic.model.js";
+import { attachIsFavoriteToSongs } from "./favorite.service.js";
 
 /**
  * Lấy dữ liệu đề xuất trang chủ bao gồm bài hát, album, nghệ sĩ và chủ đề
@@ -10,6 +11,7 @@ import Topic from "../models/topic.model.js";
  * @param {number} [options.albumLimit=10] - Số lượng album đề xuất
  * @param {number} [options.artistLimit=10] - Số lượng nghệ sĩ đề xuất
  * @param {number} [options.topicLimit=10] - Số lượng chủ đề đề xuất
+ * @param {string|mongoose.Types.ObjectId} [options.userId=null] - ID của người dùng nếu có
  * @returns {Promise<{songs: Array, albums: Array, artists: Array, topics: Array}>}
  */
 export async function getHomeRecommendations({
@@ -17,6 +19,7 @@ export async function getHomeRecommendations({
   albumLimit = 10,
   artistLimit = 10,
   topicLimit = 10,
+  userId = null,
 } = {}) {
   const [songs, albums, artists, topics] = await Promise.all([
     // Bài hát đề xuất (ưu tiên theo lượt nghe cao và mới nhất)
@@ -48,10 +51,13 @@ export async function getHomeRecommendations({
       .lean(),
   ]);
 
+  const songsWithFavorite = await attachIsFavoriteToSongs(songs, userId);
+
   return {
-    songs,
+    songs: songsWithFavorite,
     albums,
     artists,
     topics,
   };
 }
+
