@@ -87,6 +87,7 @@ export async function getMyFavorites(req, res) {
 
     const result = await favoriteService.getFavorites({
       userId,
+      currentUserId: userId,
       page,
       limit,
     });
@@ -105,10 +106,11 @@ export async function getMyFavorites(req, res) {
 
 export async function getFavorites(req, res) {
   try {
-    const userId = req.user?.id || req.query.userId;
+    const currentUserId = req.user?.id;
+    const targetUserId = req.query.userId || currentUserId;
     const { page = 1, limit = 20 } = req.query;
 
-    if (!userId) {
+    if (!targetUserId) {
       return res.status(400).json({
         success: false,
         message: "userId is required or please provide Authorization token",
@@ -116,7 +118,8 @@ export async function getFavorites(req, res) {
     }
 
     const result = await favoriteService.getFavorites({
-      userId,
+      userId: targetUserId,
+      currentUserId: currentUserId || targetUserId,
       page,
       limit,
     });
@@ -168,7 +171,11 @@ export async function checkFavorite(req, res) {
 
 export async function getFavoriteById(req, res) {
   try {
-    const favorite = await favoriteService.getFavoriteById(req.params.id);
+    const userId = req.user?.id || req.query.userId;
+    const favorite = await favoriteService.getFavoriteById(
+      req.params.id,
+      userId
+    );
 
     if (!favorite) {
       return res.status(404).json({
@@ -191,9 +198,11 @@ export async function getFavoriteById(req, res) {
 
 export async function updateFavorite(req, res) {
   try {
+    const userId = req.user?.id || req.query.userId;
     const favorite = await favoriteService.updateFavorite(
       req.params.id,
-      req.body
+      req.body,
+      userId
     );
 
     if (!favorite) {

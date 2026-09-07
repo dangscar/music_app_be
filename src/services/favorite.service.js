@@ -17,7 +17,7 @@ export async function addFavorite({ userId, songId }) {
 
   const existing = await Favorite.findOne({ userId, songId });
   if (existing) {
-    return Favorite.findById(existing._id)
+    const populated = await Favorite.findById(existing._id)
       .populate("userId", "username email avatar")
       .populate({
         path: "songId",
@@ -26,12 +26,19 @@ export async function addFavorite({ userId, songId }) {
           { path: "albumId", select: "title coverImage" },
           { path: "topicIds", select: "name slug coverImage type color" },
         ],
-      });
+      })
+      .lean();
+
+    if (populated && populated.songId && typeof populated.songId === "object") {
+      populated.songId = await attachIsFavoriteToSong(populated.songId, userId);
+      populated.isFavorite = populated.songId.isFavorite;
+    }
+    return populated;
   }
 
   const favorite = await Favorite.create({ userId, songId });
 
-  return Favorite.findById(favorite._id)
+  const populated = await Favorite.findById(favorite._id)
     .populate("userId", "username email avatar")
     .populate({
       path: "songId",
@@ -40,7 +47,15 @@ export async function addFavorite({ userId, songId }) {
         { path: "albumId", select: "title coverImage" },
         { path: "topicIds", select: "name slug coverImage type color" },
       ],
-    });
+    })
+    .lean();
+
+  if (populated && populated.songId && typeof populated.songId === "object") {
+    populated.songId = await attachIsFavoriteToSong(populated.songId, userId);
+    populated.isFavorite = populated.songId.isFavorite;
+  }
+
+  return populated;
 }
 
 export async function toggleFavorite({ userId, songId }) {
@@ -75,7 +90,13 @@ export async function toggleFavorite({ userId, songId }) {
         { path: "albumId", select: "title coverImage" },
         { path: "topicIds", select: "name slug coverImage type color" },
       ],
-    });
+    })
+    .lean();
+
+  if (populated && populated.songId && typeof populated.songId === "object") {
+    populated.songId = await attachIsFavoriteToSong(populated.songId, userId);
+    populated.isFavorite = populated.songId.isFavorite;
+  }
 
   return {
     isFavorite: true,
@@ -84,7 +105,12 @@ export async function toggleFavorite({ userId, songId }) {
   };
 }
 
-export async function getFavorites({ userId, page = 1, limit = 20 } = {}) {
+export async function getFavorites({
+  userId,
+  page = 1,
+  limit = 20,
+  currentUserId = null,
+} = {}) {
   const query = {};
 
   if (userId) {
@@ -108,12 +134,38 @@ export async function getFavorites({ userId, page = 1, limit = 20 } = {}) {
       })
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(limitNum),
+      .limit(limitNum)
+      .lean(),
     Favorite.countDocuments(query),
   ]);
 
+  const targetCheckUserId = currentUserId || userId;
+
+  const songsToAttach = favorites
+    .map((fav) => fav.songId)
+    .filter((s) => s && typeof s === "object");
+
+  const attachedSongs = await attachIsFavoriteToSongs(
+    songsToAttach,
+    targetCheckUserId
+  );
+  const songMap = new Map(attachedSongs.map((s) => [s._id.toString(), s]));
+
+  const formattedFavorites = favorites.map((fav) => {
+    if (fav.songId && typeof fav.songId === "object") {
+      const updated = songMap.get(fav.songId._id.toString());
+      if (updated) {
+        fav.songId = updated;
+        fav.isFavorite = updated.isFavorite;
+      }
+    } else {
+      fav.isFavorite = false;
+    }
+    return fav;
+  });
+
   return {
-    favorites,
+    favorites: formattedFavorites,
     pagination: {
       page: pageNum,
       limit: limitNum,
@@ -123,8 +175,8 @@ export async function getFavorites({ userId, page = 1, limit = 20 } = {}) {
   };
 }
 
-export async function getFavoriteById(id) {
-  return Favorite.findById(id)
+export async function getFavoriteById(id, userId = null) {
+  const favorite = await Favorite.findById(id)
     .populate("userId", "username email avatar")
     .populate({
       path: "songId",
@@ -133,7 +185,18 @@ export async function getFavoriteById(id) {
         { path: "albumId", select: "title coverImage" },
         { path: "topicIds", select: "name slug coverImage type color" },
       ],
-    });
+    })
+    .lean();
+
+  if (!favorite) return null;
+
+  if (favorite.songId && typeof favorite.songId === "object") {
+    const checkUserId = userId || favorite.userId?._id || favorite.userId;
+    favorite.songId = await attachIsFavoriteToSong(favorite.songId, checkUserId);
+    favorite.isFavorite = favorite.songId.isFavorite;
+  }
+
+  return favorite;
 }
 
 export async function checkFavorite(userId, songId) {
@@ -144,8 +207,8 @@ export async function checkFavorite(userId, songId) {
   };
 }
 
-export async function updateFavorite(id, data) {
-  return Favorite.findByIdAndUpdate(id, data, {
+export async function updateFavorite(id, data, userId = null) {
+  const favorite = await Favorite.findByIdAndUpdate(id, data, {
     new: true,
     runValidators: true,
   })
@@ -157,7 +220,18 @@ export async function updateFavorite(id, data) {
         { path: "albumId", select: "title coverImage" },
         { path: "topicIds", select: "name slug coverImage type color" },
       ],
-    });
+    })
+    .lean();
+
+  if (!favorite) return null;
+
+  if (favorite.songId && typeof favorite.songId === "object") {
+    const checkUserId = userId || favorite.userId?._id || favorite.userId;
+    favorite.songId = await attachIsFavoriteToSong(favorite.songId, checkUserId);
+    favorite.isFavorite = favorite.songId.isFavorite;
+  }
+
+  return favorite;
 }
 
 export async function deleteFavorite(id) {
