@@ -1,4 +1,6 @@
 import Topic from "../models/topic.model.js";
+import Song from "../models/song.model.js";
+import { attachIsFavoriteToSongs } from "./favorite.service.js";
 
 export function slugify(text) {
   if (!text) return "";
@@ -69,8 +71,29 @@ export async function getTopics({
   };
 }
 
-export async function getTopicById(id) {
-  return Topic.findById(id);
+export async function getTopicById(id, userId) {
+  const topic = await Topic.findById(id).lean();
+
+  if (!topic) {
+    return null;
+  }
+
+  // Lấy danh sách bài hát thuộc topic
+  const songs = await Song.find({
+    topicIds: topic._id,
+  })
+    .populate("artistIds")
+    .populate("albumId")
+    .sort({ createdAt: -1 })
+    .lean();
+
+  // Thêm isFavorite dựa trên Favorite collection
+  const songsWithFavorite = await attachIsFavoriteToSongs(songs, userId);
+
+  return {
+    ...topic,
+    songs: songsWithFavorite,
+  };
 }
 
 export async function getTopicBySlug(slug) {

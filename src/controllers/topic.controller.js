@@ -41,7 +41,7 @@ export async function getAllTopics(req, res) {
 
 export async function getTopicById(req, res) {
   try {
-    const topic = await topicService.getTopicById(req.params.id);
+    const topic = await topicService.getTopicById(req.params.id, req.user?.id);
 
     if (!topic) {
       return res.status(404).json({

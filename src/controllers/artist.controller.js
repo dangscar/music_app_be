@@ -20,7 +20,6 @@ export async function createArtistController(req, res, next) {
 export async function getArtistController(req, res, next) {
   try {
     const userId = req.user?.id;
-    console.log("Userid1: "+userId)
     const artist = await getArtistById(req.params.id, userId);
 
     if (!artist) {
