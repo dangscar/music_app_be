@@ -34,7 +34,7 @@ export async function getAllAlbums(req, res) {
 
 export async function getAlbumById(req, res) {
   try {
-    const album = await albumService.getAlbumById(req.params.id);
+    const album = await albumService.getAlbumById(req.params.id, req.user?.id);
 
     if (!album) {
       return res.status(404).json({
