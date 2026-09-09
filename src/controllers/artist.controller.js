@@ -19,7 +19,9 @@ export async function createArtistController(req, res, next) {
 
 export async function getArtistController(req, res, next) {
   try {
-    const artist = await getArtistById(req.params.id);
+    const userId = req.user?.id;
+    console.log("Userid1: "+userId)
+    const artist = await getArtistById(req.params.id, userId);
 
     if (!artist) {
       return res.status(404).json({
