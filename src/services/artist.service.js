@@ -14,6 +14,8 @@ export async function getArtistById(id, userId) {
   const songs = await Song.find({
     artistIds: artist._id,
   })
+    .populate("artistIds")
+    .populate("albumId")
     .sort({ createdAt: -1 })
     .limit(10)
     .lean();
