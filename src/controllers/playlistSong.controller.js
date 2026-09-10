@@ -248,3 +248,30 @@ export async function removeSongFromPlaylist(req, res) {
     });
   }
 }
+
+export async function getSongsByPlaylistId(req, res) {
+  try {
+    const { playlistId } = req.params;
+    const { page = 1, limit = 20 } = req.query;
+    const userId = req.user?.id || req.query.userId;
+
+    const result = await playlistSongService.getSongsByPlaylistId({
+      playlistId,
+      page,
+      limit,
+      userId,
+    });
+
+    res.json({
+      success: true,
+      ...result,
+    });
+  } catch (error) {
+    const status = error.message === "Playlist not found" ? 404 : 500;
+    res.status(status).json({
+      success: false,
+      message: error.message,
+    });
+  }
+}
+

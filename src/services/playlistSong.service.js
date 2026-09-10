@@ -162,3 +162,57 @@ export async function deletePlaylistSong(id) {
 export async function removeSongFromPlaylist(playlistId, songId) {
   return PlaylistSong.findOneAndDelete({ playlistId, songId });
 }
+
+export async function getSongsByPlaylistId({
+  playlistId,
+  page = 1,
+  limit = 20,
+  userId = null,
+} = {}) {
+  if (!playlistId) {
+    throw new Error("playlistId is required");
+  }
+
+  const playlist = await Playlist.findById(playlistId).select("_id").lean();
+  if (!playlist) {
+    throw new Error("Playlist not found");
+  }
+
+  const pageNum = Math.max(1, Number(page) || 1);
+  const limitNum = Math.max(1, Math.min(100, Number(limit) || 20));
+  const skip = (pageNum - 1) * limitNum;
+
+  const [playlistSongs, total] = await Promise.all([
+    PlaylistSong.find({ playlistId })
+      .populate({
+        path: "songId",
+        populate: [
+          { path: "artistIds"},
+          { path: "albumId"},
+          { path: "topicIds" },
+        ],
+      })
+      .sort({ order: 1, addedAt: -1 })
+      .skip(skip)
+      .limit(limitNum)
+      .lean(),
+    PlaylistSong.countDocuments({ playlistId }),
+  ]);
+
+  // Lấy chỉ phần song (bỏ wrapper playlistSong)
+  const rawSongs = playlistSongs
+    .map((ps) => ps.songId)
+    .filter((s) => s && typeof s === "object");
+
+  const songs = await attachIsFavoriteToSongs(rawSongs, userId);
+
+  return {
+    songs,
+    pagination: {
+      page: pageNum,
+      limit: limitNum,
+      total,
+      totalPages: Math.ceil(total / limitNum),
+    },
+  };
+}
