@@ -7,7 +7,7 @@ const router = express.Router();
 router.post("/", verifyToken, topicController.createTopic);
 router.get("/", topicController.getAllTopics);
 router.get("/slug/:slug", topicController.getTopicBySlug);
-router.get("/:id", verifyToken, topicController.getTopicById);
+router.get("/:id", topicController.getTopicById);
 router.put("/:id", verifyToken, topicController.updateTopic);
 router.delete("/:id", verifyToken, topicController.deleteTopic);
 

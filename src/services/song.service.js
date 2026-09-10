@@ -1,4 +1,5 @@
 import Song from "../models/song.model.js";
+import Favorite from "../models/favorite.model.js";
 import {
   attachIsFavoriteToSongs,
   attachIsFavoriteToSong,
@@ -34,6 +35,13 @@ export async function getSongs(page = 1, limit = 10, filter = {}, userId = null)
 
   if (filter.search) {
     query.title = { $regex: filter.search, $options: "i" };
+  }
+
+  // Lọc chỉ các bài hát user đã yêu thích
+  if (filter.isFavorite && userId) {
+    const favoriteDocs = await Favorite.find({ userId }).select("songId").lean();
+    const favoriteSongIds = favoriteDocs.map((f) => f.songId);
+    query._id = { $in: favoriteSongIds };
   }
 
   const [songs, total] = await Promise.all([
@@ -73,8 +81,8 @@ export async function getSongById(id, userId = null) {
   return attachIsFavoriteToSong(song, userId);
 }
 
-export async function getSongsByTopic(topicId, page = 1, limit = 10, userId = null) {
-  return getSongs(page, limit, { topicId }, userId);
+export async function getSongsByTopic(topicId, page = 1, limit = 10, userId = null, isFavorite = false) {
+  return getSongs(page, limit, { topicId, isFavorite }, userId);
 }
 
 export async function updateSong(id, data, userId = null) {

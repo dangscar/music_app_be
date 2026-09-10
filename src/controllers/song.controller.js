@@ -41,11 +41,14 @@ export async function getAllSongs(req, res) {
 
 export async function getSongsByTopic(req, res) {
   try {
-    const { page = 1, limit = 10 } = req.query;
+    const { page = 1, limit = 10, isFavorite } = req.query;
     const { topicId } = req.params;
     const userId = req.user?.id || req.query.userId;
 
-    const result = await songService.getSongsByTopic(topicId, page, limit, userId);
+    // isFavorite=true chỉ có tác dụng khi user đã đăng nhập
+    const filterByFavorite = isFavorite === "true" && !!userId;
+
+    const result = await songService.getSongsByTopic(topicId, page, limit, userId, filterByFavorite);
 
     res.json({
       success: true,
