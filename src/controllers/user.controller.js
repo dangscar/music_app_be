@@ -1,4 +1,4 @@
-import { createUser, getUserById, getUsers, loginUser } from "../services/user.service.js";
+import { createUser, getUserById, getUsers, loginUser, updateUserById } from "../services/user.service.js";
 
 export async function register(req, res, next) {
     try {
@@ -100,4 +100,20 @@ export async function login(req, res, next) {
   }
 }
 
+export async function updateMe(req, res, next) {
+    try {
+        const updatedUser = await updateUserById(req.user.id, req.body);
+
+        res.json({
+            success: true,
+            message: "User updated successfully",
+            data: updatedUser,
+        });
+    } catch (error) {
+        res.status(400).json({
+            success: false,
+            message: error.message,
+        });
+    }
+}
 

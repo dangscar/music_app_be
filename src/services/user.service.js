@@ -41,6 +41,53 @@ export async function getUserById(id) {
     return User.findById(id);
 }
 
+export async function updateUserById(id, data) {
+    const allowedFields = ["username", "avatar"];
+    const updateData = {};
+
+    // Chỉ cho phép cập nhật các trường được phép
+    for (const field of allowedFields) {
+        if (data[field] !== undefined) {
+            updateData[field] = data[field];
+        }
+    }
+
+    // Xử lý đổi mật khẩu
+    if (data.newPassword) {
+        if (!data.currentPassword) {
+            throw new Error("Current password is required to change password");
+        }
+
+        const user = await User.findById(id).select("+password");
+        if (!user) {
+            throw new Error("User not found");
+        }
+
+        const isMatch = await bcrypt.compare(data.currentPassword, user.password);
+        if (!isMatch) {
+            throw new Error("Current password is incorrect");
+        }
+
+        updateData.password = await bcrypt.hash(data.newPassword, 10);
+    }
+
+    if (Object.keys(updateData).length === 0) {
+        throw new Error("No valid fields to update");
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+        id,
+        { $set: updateData },
+        { new: true, runValidators: true }
+    );
+
+    if (!updatedUser) {
+        throw new Error("User not found");
+    }
+
+    return updatedUser;
+}
+
 export async function getUsers({ page = 1, limit = 10 }) {
     page = Number(page);
     limit = Number(limit);
